@@ -14,5 +14,5 @@ pip3 install -r requirements.txt
 ### Run
 
 ```bash
-
+accelerate launch scripts/train_composition.py
 ```

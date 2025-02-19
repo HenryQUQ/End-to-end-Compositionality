@@ -18,7 +18,7 @@ class MINSTDataset(torch.utils.data.Dataset):
         self.transform = torchvision.transforms.Compose(
             [
                 torchvision.transforms.ToTensor(),
-                torchvision.transforms.Resize((128, 128)),
+                torchvision.transforms.Resize((81, 81)),
             ]
         )
 
@@ -31,7 +31,7 @@ class MINSTDataset(torch.utils.data.Dataset):
         return image, label
 
 
-def load_MINST_dataloader(split, batch_size=1, num_workers=0):
+def load_MINST_dataloader(split="train", batch_size=1, num_workers=0):
     dataset = MINSTDataset(split)
     if split == "train":
         dataloader = torch.utils.data.DataLoader(

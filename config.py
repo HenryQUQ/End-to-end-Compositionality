@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 import os
+import torch
 
 
 @dataclass
 class Config:
+
     # Paths
     ROOT_PATH: str = os.path.dirname(os.path.abspath(__file__))
 
