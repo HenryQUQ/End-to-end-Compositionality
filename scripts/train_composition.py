@@ -18,7 +18,7 @@ import torchvision.utils as vutils
 from pipelines.composition.pipeline_compostion import CompositionalPipeline
 
 from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 
 @dataclass
@@ -119,7 +119,7 @@ def visualize_reconstruction(pipeline, dataloader, accelerator, epoch, max_sampl
 def main():
     time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     name = f"Composition-E2E-Test-{time}"
-    wandb.init(project="Composition-E2E-Test", name=name)
+
 
     accelerator = Accelerator()
 
@@ -149,6 +149,12 @@ def main():
 
     checkpoint_dir = os.path.join(Config.TRAINING_LOG_FOLDER, name)
     os.makedirs(checkpoint_dir, exist_ok=True)
+
+    wandb.init(project="Composition-E2E-Test", name=name, dir=checkpoint_dir)
+
+    # Log Hyperparameters
+    wandb.config.update(asdict(Hyperparameters()))
+
     for epoch in range(Hyperparameters.EPOCHS):
         avg_loss = train_one_epoch(
             pipeline, dataloader, optimizer, lr_scheduler, accelerator, epoch
