@@ -24,12 +24,12 @@ from dataclasses import dataclass, asdict
 @dataclass
 class Hyperparameters:
     IN_CHANNEL: int = 1
-    VOCAB_SIZES = [1000, 500, 100, 10]
+    VOCAB_SIZES = [1000, 1000, 1000, 1000]
     PATCH_SIZE: int = 3
     STRIDE: int = 3
     IMAGE_SIZE: int = 81
 
-    BATCH_SIZE: int = 8
+    BATCH_SIZE: int = 12
     INITIAL_LR: float = 1e-3
     LEARNING_RATE_DECAY: float = 0.9
     LR_DECAY_STEP: int = 1000
