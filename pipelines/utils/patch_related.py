@@ -25,7 +25,7 @@ def fold_patches(patches, out_channels, out_h, out_w, patch_size=3, stride=3):
     # Use Fold
     folded = F.fold(
         patches_reshape,
-        output_size=(out_h, out_w),
+        output_size=(out_h * out_w),
         kernel_size=patch_size,
         stride=stride,
     )

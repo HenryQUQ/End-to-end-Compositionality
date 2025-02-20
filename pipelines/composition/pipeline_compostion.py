@@ -48,7 +48,7 @@ class CompositionalPipeline(nn.Module):
             H == self.image_size and W == self.image_size
         ), "Input image size must match self.image_size."
 
-        # Intermediate information for reconstruction
+        # Intermediate information
         info_list = []
 
         # Current feature map (bchw)
@@ -69,7 +69,7 @@ class CompositionalPipeline(nn.Module):
             H_out, W_out = H // self.stride, W // self.stride
             featmap_2d = cm.view(B, H_out, W_out, vocab_size_i)
 
-            # Save intermediate information for reconstruction
+            # Save intermediate information
             info = {
                 "layer_idx": i,
                 "patches_shape": (B, N, in_ch, ph, pw),
@@ -97,63 +97,59 @@ class CompositionalPipeline(nn.Module):
         """
         # From top to the bottom
         # info_list[-1] is the top layer
+        top_idx = len(self.layers) - 1
+
+        cm_current = info_list[top_idx]["composition_matrix"]
+
+        # We only use the top layer's composition matrix.
         for i in reversed(range(len(self.layers))):
             layer = self.layers[i]
             info = info_list[i]
 
-            # Get: composition_matrix, patches_shape, in_featmap_shape
-            cm = info["composition_matrix"]  # (B, N, vocab_size_i)
-            B, N, in_ch, ph, pw = info["patches_shape"]
-            (B2, in_ch2, H2, W2) = info["in_featmap_shape"]
-
-            # From composition matrix and vocabulary to compute patches
-            #  composition_matrix: (B, N, vocab_size_i)
-            #  vocabulary: (vocab_size_i, in_ch, ph, pw)
-            # => patches_recon: (B, N, in_ch, ph, pw)
-            patches_recon = self._combine_patches(cm, layer.vocabulary)
-
-            # fold => (B, in_ch, H2, W2)
-            featmap_recon = fold_patches(
-                patches_recon,
-                out_channels=in_ch,
-                out_h=H2,
-                out_w=W2,
-                patch_size=self.patch_size,
-                stride=self.stride,
+            cm_next = self._combine_cmatrix(
+                cm_current, layer.vocabulary, normalize=False
             )
 
-            # use featmap_recon as lower layer's featmap
-            if i > 0:
-                # Save featmap_recon to info_list[i-1],
-                # For the next layer's reconstruction
-                info_list[i - 1]["recon_featmap"] = featmap_recon
-            else:
-                # i==0, return the final reconstructed image
-                return featmap_recon
+            B, N_i, C, H, W = cm_next.shape
+            cm_next = cm_next.view(B, N_i, C, H * W)  # (B, N_i, C, 9)
+            cm_next = cm_next.permute(0, 1, 3, 2)  # (B, N_i, 9, C)
+            cm_next = cm_next.reshape(B, N_i * 9, C)  # (B, N_i*9, C)
+            cm_current = cm_next
 
-        # Should not reach here
-        return None
+        B0, C0, H0, W0 = info_list[0]["in_featmap_shape"]  # Original image shape
 
-    def _combine_patches(self, cm, vocabulary):
+        patches_reshape = cm_current.view(B, -1, C0 * 3 * 3).transpose(1, 2)
+        final_image = F.fold(
+            patches_reshape, output_size=(H0, W0), kernel_size=3, stride=3
+        )
+        return final_image
+
+    def _combine_cmatrix(self, cm_current, vocabulary, normalize=True):
         """
-        Use composition matrix and vocabulary to compute patches,
-        input:
-         cm: (B, N, vocab_size)
-         vocabulary: (vocab_size, in_ch, ph, pw)
-        return:
-         patches_recon: (B, N, in_ch, ph, pw)
+
+        - cm_current.shape = (B, N, vocab_size_i)
+        - vocabulary.shape = (vocab_size_i, in_channels, 3, 3)
+
+        Return:
+        - cm_next: (B, N, in_channels, 3, 3), 表示下一层的 construction matrix
         """
-        B, N, V = cm.shape
-        V2, in_ch, ph, pw = vocabulary.shape
-        assert V == V2, "vocab_size mismatch"
+        B, N, V = cm_current.shape
+        V2, C, H, W = vocabulary.shape
+        assert V == V2, "Vocabulary size mismatch."
 
-        # expand => (B, N, V, 1, 1, 1) and (1, 1, V, in_ch, ph, pw)
-        cm_expanded = cm.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
-        vocab_expanded = vocabulary.unsqueeze(0).unsqueeze(0)
+        if normalize:
+            cm_current = cm_current / (cm_current.sum(dim=-1, keepdim=True) + 1e-8)
 
-        # Times => (B, N, V, in_ch, ph, pw)
-        patch_combined = cm_expanded * vocab_expanded
-        # Sum the V channel => (B, N, in_ch, ph, pw)
-        patches_recon = patch_combined.sum(dim=2)
+        # (B, N, V, 1, 1, 1) vs (1, 1, V, C, H, W)
+        cm_expanded = (
+            cm_current.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+        )  # (B,N,V,1,1,1)
 
-        return patches_recon
+        vocab_expanded = vocabulary.unsqueeze(0).unsqueeze(0)  # (1,1,V,C,H,W)
+
+        # => (B, N, V, C, H, W)
+        patches = cm_expanded * vocab_expanded
+        # sum over V => (B, N, C, H, W)
+        cm_next = patches.sum(dim=2)
+
+        return cm_next
