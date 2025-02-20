@@ -93,7 +93,9 @@ def visualize_reconstruction(pipeline, dataloader, accelerator, epoch, max_sampl
         return
 
     # Visualize the reconstruction for one batch
-    images, _ = next(iter(dataloader))
+    for images, _ in dataloader:
+        images, _ = images, _
+        break
     images = images.to(accelerator.device)
 
     pipeline.eval()
