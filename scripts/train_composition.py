@@ -29,7 +29,7 @@ class Hyperparameters:
     STRIDE: int = 3
     IMAGE_SIZE: int = 81
 
-    BATCH_SIZE: int = 24  # 8 for 24GB, 24 for 48GB
+    BATCH_SIZE: int = 16  # 8 for 24GB, 24 for 48GB
     INITIAL_LR: float = 1e-3
     LEARNING_RATE_DECAY: float = 0.9
     LR_DECAY_STEP: int = 1000
