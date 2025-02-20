@@ -98,8 +98,7 @@ def visualize_reconstruction(pipeline, dataloader, accelerator, epoch, max_sampl
 
     pipeline.eval()
     with torch.no_grad():
-        final_feat, info_list = pipeline(images)
-        reconstructed = pipeline.reconstruct(info_list)
+        final_feat, info_list, reconstructed = pipeline(images)
 
     n_visual = min(max_samples, images.size(0))
 
