@@ -52,7 +52,10 @@ def train_one_epoch(
     num_samples = 0
 
     tqdm_loader = tqdm(
-        enumerate(dataloader), desc=f"Epoch {epoch}", total=len(dataloader), disable=not accelerator.is_main_process
+        enumerate(dataloader),
+        desc=f"Epoch {epoch}",
+        total=len(dataloader),
+        disable=not accelerator.is_main_process,
     )
     for step, (images, _) in tqdm_loader:
         final_feat, info_list = pipeline(images)
