@@ -52,7 +52,7 @@ def train_one_epoch(
     num_samples = 0
 
     tqdm_loader = tqdm(
-        enumerate(dataloader), desc=f"Epoch {epoch}", total=len(dataloader)
+        enumerate(dataloader), desc=f"Epoch {epoch}", total=len(dataloader), disable=not accelerator.is_main_process
     )
     for step, (images, _) in tqdm_loader:
         final_feat, info_list = pipeline(images)
@@ -70,16 +70,17 @@ def train_one_epoch(
 
         # wandb
         current_loss = loss.item()
-        wandb.log(
-            {
-                "train_loss": current_loss,
-                "epoch": epoch,
-                "step": step + 1 + epoch * len(dataloader),
-                "lr": lr_scheduler.get_last_lr()[0],
-            }
-        )
+        if accelerator.is_main_process:
+            wandb.log(
+                {
+                    "train_loss": current_loss,
+                    "epoch": epoch,
+                    "step": step + 1 + epoch * len(dataloader),
+                    "lr": lr_scheduler.get_last_lr()[0],
+                }
+            )
 
-        tqdm_loader.set_postfix(loss=current_loss)
+            tqdm_loader.set_postfix(loss=current_loss)
 
     avg_loss = total_loss / num_samples
     return avg_loss
@@ -149,10 +150,11 @@ def main():
     checkpoint_dir = os.path.join(Config.TRAINING_LOG_FOLDER, name)
     os.makedirs(checkpoint_dir, exist_ok=True)
 
-    wandb.init(project="Composition-E2E-Test", name=name, dir=checkpoint_dir)
+    if accelerator.is_main_process:
+        wandb.init(project="Composition-E2E-Test", name=name, dir=checkpoint_dir)
 
-    # Log Hyperparameters
-    wandb.config.update(asdict(Hyperparameters()))
+        # Log Hyperparameters
+        wandb.config.update(asdict(Hyperparameters()))
 
     for epoch in range(Hyperparameters.EPOCHS):
         avg_loss = train_one_epoch(
@@ -163,7 +165,8 @@ def main():
             f"Epoch [{epoch + 1}/{Hyperparameters.EPOCHS}] | Loss: {avg_loss:.6f}"
         )
 
-        visualize_reconstruction(pipeline, dataloader, accelerator, epoch + 1)
+        if accelerator.is_main_process:
+            visualize_reconstruction(pipeline, dataloader, accelerator, epoch + 1)
 
         if (epoch + 1) % Hyperparameters.CHECKPOINT_FREQ == 0:
             accelerator.wait_for_everyone()
