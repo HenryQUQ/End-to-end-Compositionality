@@ -1,5 +1,5 @@
 import os.path
-
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -77,7 +77,6 @@ def train_one_epoch(
                 {
                     "train_loss": current_loss,
                     "epoch": epoch,
-                    "step": step + 1 + epoch * len(dataloader),
                     "lr": lr_scheduler.get_last_lr()[0],
                 }
             )
