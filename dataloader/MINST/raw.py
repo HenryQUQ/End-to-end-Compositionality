@@ -4,7 +4,6 @@ import torch
 import torchvision
 from tqdm import tqdm
 
-print(torch.__version__)
 
 from config import Config
 
