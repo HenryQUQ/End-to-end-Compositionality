@@ -56,7 +56,10 @@ def train_one_epoch(
     )
     for step, (images, _) in tqdm_loader:
         final_feat, info_list = pipeline(images)
-        reconstructed = pipeline.reconstruct(info_list)
+        if isinstance(pipeline, nn.DataParallel):
+            reconstructed = pipeline.module.reconstruct(info_list)
+        else:
+            reconstructed = pipeline.reconstruct(info_list)
 
         loss = F.mse_loss(reconstructed, images)
 
