@@ -121,7 +121,7 @@ def visualize_reconstruction(pipeline, dataloader, accelerator, epoch, max_sampl
 
 def main():
     time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    name = f"Composition-E2E-Test-{time}"
+    name = f"Composition-E2E-{time}"
 
     accelerator = Accelerator()
 
@@ -153,7 +153,7 @@ def main():
     os.makedirs(checkpoint_dir, exist_ok=True)
 
     if accelerator.is_main_process:
-        wandb.init(project="Composition-E2E-Test", name=name, dir=checkpoint_dir)
+        wandb.init(project="Composition-E2E", name=name, dir=checkpoint_dir)
 
         # Log Hyperparameters
         wandb.config.update(asdict(Hyperparameters()))
