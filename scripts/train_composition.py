@@ -24,7 +24,7 @@ from dataclasses import dataclass, asdict
 @dataclass
 class Hyperparameters:
     IN_CHANNEL: int = 1
-    VOCAB_SIZES = [1000, 1000, 1000, 1000]
+    VOCAB_SIZES = [100, 500, 1000, 1000]
     PATCH_SIZE: int = 3
     STRIDE: int = 3
     IMAGE_SIZE: int = 81
