@@ -37,6 +37,11 @@ class CompositionalPipeline(nn.Module):
             current_in_channels = vs
 
     def forward(self, images):
+        final_feat, info_list = self.compose(images)
+        reconstructed = self.reconstruct(info_list)
+        return final_feat, info_list, reconstructed
+
+    def compose(self, images):
         """
         images: (B, in_channels, image_size, image_size)
         Return:

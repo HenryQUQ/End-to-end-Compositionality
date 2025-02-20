@@ -29,7 +29,7 @@ class Hyperparameters:
     STRIDE: int = 3
     IMAGE_SIZE: int = 81
 
-    BATCH_SIZE: int = 16  # 8 for 24GB, 16 for 48GB
+    BATCH_SIZE: int = 8  # 8 for 24GB, 16 for 48GB
     INITIAL_LR: float = 1e-3
     LEARNING_RATE_DECAY: float = 0.9
     LR_DECAY_STEP: int = 1000
@@ -58,11 +58,7 @@ def train_one_epoch(
         disable=not accelerator.is_main_process,
     )
     for step, (images, _) in tqdm_loader:
-        final_feat, info_list = pipeline(images)
-        if isinstance(pipeline, nn.parallel.DistributedDataParallel):
-            reconstructed = pipeline.module.reconstruct(info_list)
-        else:
-            reconstructed = pipeline.reconstruct(info_list)
+        final_feat, info_list, reconstructed = pipeline(images)
 
         loss = F.mse_loss(reconstructed, images)
 
