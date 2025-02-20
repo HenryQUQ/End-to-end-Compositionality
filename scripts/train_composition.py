@@ -56,7 +56,7 @@ def train_one_epoch(
     )
     for step, (images, _) in tqdm_loader:
         final_feat, info_list = pipeline(images)
-        if isinstance(pipeline, nn.DataParallel):
+        if isinstance(pipeline, nn.parallel.DistributedDataParallel):
             reconstructed = pipeline.module.reconstruct(info_list)
         else:
             reconstructed = pipeline.reconstruct(info_list)
