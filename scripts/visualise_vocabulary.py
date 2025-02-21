@@ -43,7 +43,7 @@ if __name__ == '__main__':
     )
 
     checkpoint = torch.load(pretrained_model_path)
-    pipeline.load_state_dict(checkpoint['model_state_dict'])
+    pipeline.load_state_dict(checkpoint)
 
     pipeline.eval()
 
