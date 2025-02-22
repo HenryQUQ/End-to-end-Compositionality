@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch import distributed as dist
 from tqdm import tqdm
 from config import Config
 from torch.optim.lr_scheduler import StepLR
@@ -17,9 +18,11 @@ import torchvision.utils as vutils
 
 from pipelines.composition.pipeline_compostion import CompositionalPipeline
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 
+# Solve potential NCCL issues
+dist.init_process_group(backend='nccl', init_method='env://', timeout=timedelta(seconds=5400))
 
 @dataclass
 class Hyperparameters:
@@ -161,8 +164,6 @@ def main():
         wandb.config.update(asdict(Hyperparameters()))
 
     for epoch in range(Hyperparameters.EPOCHS):
-        if hasattr(dataloader.sampler, "set_epoch"):
-            dataloader.sampler.set_epoch(epoch)
         avg_loss = train_one_epoch(
             pipeline, dataloader, optimizer, lr_scheduler, accelerator, epoch
         )
