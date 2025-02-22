@@ -160,6 +160,8 @@ def main():
         wandb.config.update(asdict(Hyperparameters()))
 
     for epoch in range(Hyperparameters.EPOCHS):
+        if hasattr(dataloader.sampler, "set_epoch"):
+            dataloader.sampler.set_epoch(epoch)
         avg_loss = train_one_epoch(
             pipeline, dataloader, optimizer, lr_scheduler, accelerator, epoch
         )
