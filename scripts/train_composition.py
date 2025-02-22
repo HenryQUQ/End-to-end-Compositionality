@@ -37,7 +37,7 @@ class Hyperparameters:
     LEARNING_RATE_DECAY: float = 0.9
     LR_DECAY_STEP: int = 1000
 
-    EPOCHS: int = 10
+    EPOCHS: int = 100
 
     CHECKPOINT_FREQ: int = 1
 
