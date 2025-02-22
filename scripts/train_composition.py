@@ -29,12 +29,12 @@ class Hyperparameters:
     STRIDE: int = 3
     IMAGE_SIZE: int = 81
 
-    BATCH_SIZE: int = 24
-    INITIAL_LR: float = 1e-3
+    BATCH_SIZE: int = 16
+    INITIAL_LR: float = 1e-4
     LEARNING_RATE_DECAY: float = 0.9
     LR_DECAY_STEP: int = 1000
 
-    EPOCHS: int = 100
+    EPOCHS: int = 10
 
     CHECKPOINT_FREQ: int = 1
 
