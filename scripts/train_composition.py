@@ -89,13 +89,14 @@ def train_one_epoch(
 
 
 def visualize_reconstruction(pipeline, dataloader, accelerator, epoch, max_samples=4):
-    if not accelerator.is_main_process:
-        return
+
 
     # Visualize the reconstruction for one batch
     for images, _ in dataloader:
         images, _ = images, _
         break
+    if not accelerator.is_main_process:
+        return
     images = images.to(accelerator.device)
 
     pipeline.eval()
@@ -170,8 +171,8 @@ def main():
             f"Epoch [{epoch + 1}/{Hyperparameters.EPOCHS}] | Loss: {avg_loss:.6f}"
         )
 
-        if accelerator.is_main_process:
-            visualize_reconstruction(pipeline, dataloader, accelerator, epoch + 1)
+
+        visualize_reconstruction(pipeline, dataloader, accelerator, epoch + 1)
 
         if (epoch + 1) % Hyperparameters.CHECKPOINT_FREQ == 0:
             accelerator.wait_for_everyone()
