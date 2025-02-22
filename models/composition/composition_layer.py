@@ -48,6 +48,6 @@ class CompositionalLayer(nn.Module):
 
         composition_matrix = 1 / (mse + 1e-6)  # (B, N, vocab_size)
 
-        composition_matrix = composition_matrix / composition_matrix.sum(dim=1, keepdim=True)
+        composition_matrix = composition_matrix / composition_matrix.sum(dim=-1, keepdim=True)
 
         return composition_matrix
