@@ -112,7 +112,7 @@ class CompositionalPipeline(nn.Module):
             info = info_list[i]
 
             cm_next = self._combine_cmatrix(
-                cm_current, layer.vocabulary, normalize=False
+                cm_current, layer.vocabulary
             )
 
             B, N_i, C, H, W = cm_next.shape
@@ -129,21 +129,19 @@ class CompositionalPipeline(nn.Module):
         )
         return final_image
 
-    def _combine_cmatrix(self, cm_current, vocabulary, normalize=True):
+    def _combine_cmatrix(self, cm_current, vocabulary):
         """
 
         - cm_current.shape = (B, N, vocab_size_i)
         - vocabulary.shape = (vocab_size_i, in_channels, 3, 3)
 
         Return:
-        - cm_next: (B, N, in_channels, 3, 3), 表示下一层的 construction matrix
+        - cm_next: (B, N, in_channels, 3, 3)
         """
         B, N, V = cm_current.shape
         V2, C, H, W = vocabulary.shape
         assert V == V2, "Vocabulary size mismatch."
 
-        if normalize:
-            cm_current = cm_current / (cm_current.sum(dim=-1, keepdim=True) + 1e-8)
 
         # (B, N, V, 1, 1, 1) vs (1, 1, V, C, H, W)
         cm_expanded = (

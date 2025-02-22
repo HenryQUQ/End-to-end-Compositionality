@@ -37,23 +37,17 @@ class CompositionalLayer(nn.Module):
         """
         B, N, C, H, W = x.shape  # C=in_channels, H=patch_size, W=patch_size
 
-        # flatten x -> (B, N, 1, C*H*W)
+        # Conv x flatten into (B, N, 1, C*H*W)
         x_flat = x.view(B, N, 1, C * H * W)
 
-        # flatten vocabulary -> (vocab_size, C*H*W)
-        vocab_flat = self.vocabulary.view(self.vocab_size, -1)  # (vocab_size, C*H*W)
-        # reshape -> (1, 1, vocab_size, C*H*W)
-        vocab_flat = vocab_flat.unsqueeze(0).unsqueeze(0)
+        # Convert vocabulary flatten into (vocab_size, C*H*W)
+        vocab_flat = self.vocabulary.view(self.vocab_size, -1).unsqueeze(0).unsqueeze(0)
 
-        # Dot Product -> (B, N, vocab_size)
-        dot = (x_flat * vocab_flat).sum(dim=-1)
+        # MSE
+        mse = torch.mean((x_flat - vocab_flat) ** 2, dim=-1)  # (B, N, vocab_size)
 
-        # Cosine Similarity
-        x_norm = x_flat.norm(dim=-1, keepdim=False)  # (B, N, 1)
-        vocab_norm = vocab_flat.norm(dim=-1, keepdim=False)  # (1, 1, vocab_size)
-        cos_sim = dot / (x_norm * vocab_norm + 1e-8)
+        composition_matrix = 1 / (mse + 1e-6)  # (B, N, vocab_size)
 
-        # softmax
-        composition_matrix = F.softmax(cos_sim, dim=-1)
+        composition_matrix = composition_matrix / composition_matrix.sum(dim=-1, keepdim=True)
 
         return composition_matrix
