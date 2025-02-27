@@ -44,10 +44,10 @@ class CompositionalLayer(nn.Module):
         vocab_flat = self.vocabulary.view(self.vocab_size, -1).unsqueeze(0).unsqueeze(0)
 
         # MSE
-        mse = torch.mean((x_flat - vocab_flat) ** 2, dim=-1)  # (B, N, vocab_size)
+        composition_matrix = torch.mean((x_flat - vocab_flat) ** 2, dim=-1)  # (B, N, vocab_size)
 
-        composition_matrix = 1 / (mse + 1e-6)  # (B, N, vocab_size)
-
-        composition_matrix = composition_matrix / composition_matrix.sum(dim=-1, keepdim=True)
+        # composition_matrix = 1 / (mse + 1e-6)  # (B, N, vocab_size)
+        #
+        # composition_matrix = composition_matrix / composition_matrix.sum(dim=-1, keepdim=True)
 
         return composition_matrix
