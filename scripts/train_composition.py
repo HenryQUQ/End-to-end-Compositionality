@@ -22,22 +22,22 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 
 # Solve potential NCCL issues
-dist.init_process_group(backend='nccl', init_method='env://', timeout=timedelta(seconds=5400))
+# dist.init_process_group(backend='nccl', init_method='env://', timeout=timedelta(seconds=5400))
 
 @dataclass
 class Hyperparameters:
     IN_CHANNEL: int = 1
-    VOCAB_SIZES = [100, 1000]
+    VOCAB_SIZES = [100,1000, 1000, 1000]
     PATCH_SIZE: int = 3
     STRIDE: int = 3
     IMAGE_SIZE: int = 81
 
-    BATCH_SIZE: int = 16
+    BATCH_SIZE: int = 8
     INITIAL_LR: float = 1e-4
     LEARNING_RATE_DECAY: float = 0.9
     LR_DECAY_STEP: int = 1000
 
-    EPOCHS: int = 100
+    EPOCHS: int = 10
 
     CHECKPOINT_FREQ: int = 1
 
@@ -63,7 +63,9 @@ def train_one_epoch(
     for step, (images, _) in tqdm_loader:
         final_feat, info_list, reconstructed = pipeline(images)
 
-        loss = F.mse_loss(reconstructed, images)
+        loss = 0
+        for i in range(len(info_list)):
+            loss += F.mse_loss(reconstructed[i], info_list[i]["featmap_bchw"])
 
         accelerator.backward(loss)
         optimizer.step()

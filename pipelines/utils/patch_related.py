@@ -15,17 +15,17 @@ def extract_patches(featmap_bchw, patch_size=3, stride=3):
     return patches
 
 
-def fold_patches(patches, out_channels, out_h, out_w, patch_size=3, stride=3):
+def fold_patches(patches, out_h, out_w, patch_size=3, stride=3):
     """
     Restore patches (B, N, C, patch_size, patch_size) to (B, C, out_h, out_w)
     """
     B, N, C, H, W = patches.shape
     # (B, N, C*H*W) => (B, C*H*W, N)
-    patches_reshape = patches.view(B, N, C * H * W).transpose(1, 2)
+    patches_reshape = patches.reshape(B, N, C * H * W).transpose(1, 2)
     # Use Fold
     folded = F.fold(
         patches_reshape,
-        output_size=(out_h * out_w),
+        output_size=(out_h, out_w),
         kernel_size=patch_size,
         stride=stride,
     )

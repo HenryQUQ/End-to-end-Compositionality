@@ -22,10 +22,17 @@ class CompositionalLayer(nn.Module):
         self.in_channels = in_channels
         self.patch_size = patch_size
 
-        # [vocab_size, in_channels, patch_size, patch_size]
-        self.vocabulary = nn.Parameter(
-            torch.randn(vocab_size, in_channels, patch_size, patch_size) * 0.01
-        )
+
+        if self.in_channels == 1:
+            # [vocab_size, in_channels, patch_size, patch_size]
+            self.vocabulary = nn.Parameter(
+                torch.randn(vocab_size, in_channels, patch_size, patch_size)
+            )
+
+        else:
+            vocab = torch.randn(vocab_size, in_channels, patch_size, patch_size)
+            vocab = vocab / vocab.sum(dim=1, keepdim=True)
+            self.vocabulary = nn.Parameter(vocab)
 
     def forward(self, x):
         """
@@ -43,11 +50,14 @@ class CompositionalLayer(nn.Module):
         # Convert vocabulary flatten into (vocab_size, C*H*W)
         vocab_flat = self.vocabulary.view(self.vocab_size, -1).unsqueeze(0).unsqueeze(0)
 
+        # TODO: Remove flatting machanism
         # MSE
-        composition_matrix = torch.mean((x_flat - vocab_flat) ** 2, dim=-1)  # (B, N, vocab_size)
+        mse = torch.mean((x_flat - vocab_flat) ** 2, dim=-1)  # (B, N, vocab_size)
 
-        # composition_matrix = 1 / (mse + 1e-6)  # (B, N, vocab_size)
-        #
-        # composition_matrix = composition_matrix / composition_matrix.sum(dim=-1, keepdim=True)
+        mse_normalise = torch.tanh(mse) / torch.tanh(torch.tensor(10))
+
+        composition_matrix = (1 - mse_normalise) ** 5
+
+        composition_matrix = composition_matrix / composition_matrix.sum(dim=-1, keepdim=True)
 
         return composition_matrix

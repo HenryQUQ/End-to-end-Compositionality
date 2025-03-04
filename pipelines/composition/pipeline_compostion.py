@@ -4,7 +4,19 @@ import torch.nn as nn
 
 from models.composition.composition_layer import CompositionalLayer
 from torch.nn import functional as F
-from pipelines.utils.patch_related import extract_patches, fold_patches
+# from pipelines.utils.patch_related import extract_patches, fold_patches
+
+def extract_patches(featmap_bchw, patch_size=3, stride=3):
+    """
+    Patch feature map (B, C, H, W) => (B, N, C, patch_size, patch_size)
+    N = (H/stride)*(W/stride) (No overlapping)
+    """
+    unfolded = F.unfold(featmap_bchw, kernel_size=patch_size, stride=stride)
+    B, total_size, N = unfolded.shape  # total_size = C*patch_size*patch_size
+    C = featmap_bchw.size(1)
+    # reshape => (B, N, C, patch_size, patch_size)
+    patches = unfolded.transpose(1, 2).reshape(B, N, C, patch_size, patch_size)
+    return patches
 
 
 class CompositionalPipeline(nn.Module):
@@ -76,6 +88,7 @@ class CompositionalPipeline(nn.Module):
 
             # Save intermediate information
             info = {
+                "featmap_bchw": featmap_bchw,
                 "layer_idx": i,
                 "patches_shape": (B, N, in_ch, ph, pw),
                 "in_featmap_shape": (B, in_ch, H, W),
@@ -100,34 +113,39 @@ class CompositionalPipeline(nn.Module):
         """
         Based on info_list, reverse the forward process, from top to the bottom, return (B, in_channels, image_size, image_size) image reconstruction
         """
+        # TODO： limit the channel channel sum to 1 and 0-1
         # From top to the bottom
         # info_list[-1] is the top layer
-        top_idx = len(self.layers) - 1
-
-        cm_current = info_list[top_idx]["composition_matrix"]
-
-        # We only use the top layer's composition matrix.
+        reconstructed_info = [None for _ in range(len(self.layers))]
         for i in reversed(range(len(self.layers))):
             layer = self.layers[i]
             info = info_list[i]
 
-            cm_next = self._combine_cmatrix(
-                cm_current, layer.vocabulary
+            # Get the composition matrix that *this* layer produced
+            cm = info["composition_matrix"]  # (B, N, vocab_size_i)
+
+            # Combine cm with the layer's vocabulary to get the raw patches
+            patches = self._combine_cmatrix(cm, layer.vocabulary)
+            # patches.shape = (B, N, in_channels_of_this_layer, patch_size, patch_size)
+
+            # We know the shape of the feature map that went into this layer
+            B_in, C_in, H_in, W_in = info["in_featmap_shape"]
+
+            # Reshape patches so we can fold them:
+            #   patches for fold => (B, C_in*patch_size*patch_size, N)
+            B, N, C, ph, pw = patches.shape
+            patches_for_fold = patches.view(B, N, C * ph * pw).permute(0, 2, 1)
+            # Now fold to get the layer’s input feature map
+            reconstructed_current = F.fold(
+                patches_for_fold,
+                output_size=(H_in, W_in),
+                kernel_size=self.patch_size,
+                stride=self.stride
             )
 
-            B, N_i, C, H, W = cm_next.shape
-            cm_next = cm_next.view(B, N_i, C, H * W)  # (B, N_i, C, 9)
-            cm_next = cm_next.permute(0, 1, 3, 2)  # (B, N_i, 9, C)
-            cm_next = cm_next.reshape(B, N_i * 9, C)  # (B, N_i*9, C)
-            cm_current = cm_next
+            reconstructed_info[i] = reconstructed_current
 
-        B0, C0, H0, W0 = info_list[0]["in_featmap_shape"]  # Original image shape
-
-        patches_reshape = cm_current.view(B, -1, C0 * 3 * 3).transpose(1, 2)
-        final_image = F.fold(
-            patches_reshape, output_size=(H0, W0), kernel_size=3, stride=3
-        )
-        return final_image
+        return reconstructed_info
 
     def _combine_cmatrix(self, cm_current, vocabulary):
         """
@@ -156,3 +174,34 @@ class CompositionalPipeline(nn.Module):
         cm_next = patches.sum(dim=2)
 
         return cm_next
+
+    def _visualize_vocabulary(self):
+        voc_list =[]
+        for i in reversed(range(len(self.layers))):
+            current_v = self.layers[i].vocabulary
+
+            cm_current = current_v
+            B, C, H, W = cm_current.shape
+
+            for j in reversed(range(i-1)):
+                layer = self.layers[j]
+                cm_next = self._combine_cmatrix(
+                    cm_current, layer.vocabulary
+                )
+
+                B, N_i, C, H, W = cm_next.shape
+                cm_next = cm_next.view(B, N_i, C, H * W)  # (B, N_i, C, 9)
+                cm_next = cm_next.permute(0, 1, 3, 2)  # (B, N_i, 9, C)
+                cm_next = cm_next.reshape(B, N_i * 9, C)  # (B, N_i*9, C)
+                cm_current = cm_next
+
+
+            patches_reshape = cm_current.view(B, -1, 1 * 3 * 3).transpose(1, 2)
+            final_image = F.fold(
+                patches_reshape, output_size=(3**(i-1), 3**(i-1)), kernel_size=3, stride=3)
+            voc_list.append(final_image)
+
+        return voc_list
+
+
+

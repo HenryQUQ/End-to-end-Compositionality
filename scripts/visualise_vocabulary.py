@@ -1,6 +1,7 @@
 import os.path
 import random
 import torch
+import torchvision
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -13,7 +14,6 @@ import wandb
 from accelerate import Accelerator
 from dataloader.MINST.raw import load_MINST_dataloader
 from tqdm import tqdm
-import torchvision.utils as vutils
 
 from pipelines.composition.pipeline_compostion import CompositionalPipeline
 
@@ -24,7 +24,7 @@ from dataclasses import dataclass, asdict
 @dataclass
 class Hyperparameters:
     IN_CHANNEL: int = 1
-    VOCAB_SIZES = [100, 1000, 1000, 1000]
+    VOCAB_SIZES = [100,]
     PATCH_SIZE: int = 3
     STRIDE: int = 3
     IMAGE_SIZE: int = 81
@@ -33,7 +33,7 @@ class Hyperparameters:
 
 if __name__ == '__main__':
 
-    pretrained_model_path = r'/bask/projects/j/jiaoj-multi-modal/End-to-end-Compositionality/logs/train/Composition-E2E-2025-02-20_18-28-42/pipeline_final.pth'
+    pretrained_model_path = r'/home/vieunite/Researchs/End-to-end-Compositionality/logs/train/Composition-E2E-2025-02-27_18-20-42/pipeline_final.pth'
     pipeline = CompositionalPipeline(
         in_channels=Hyperparameters.IN_CHANNEL,
         vocab_sizes=Hyperparameters.VOCAB_SIZES,
@@ -48,9 +48,10 @@ if __name__ == '__main__':
     pipeline.eval()
 
     # Visualise the vocabulary
-    vocab_list = []
-    for layer in pipeline.layers:
-        vocab_list.append(layer.vocabulary)
+    vocs = pipeline.layers[0].vocabulary
 
-    torch.save(vocab_list, 'vocab_list.pth')
+    # for i, vocs in enumerate(voc_list):
+    for j in range(vocs.shape[0]):
+        torchvision.utils.save_image(vocs[j], f'{j}.png')
+
 
