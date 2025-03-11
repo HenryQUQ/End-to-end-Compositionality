@@ -21,13 +21,15 @@ from pipelines.composition.pipeline_compostion import CompositionalPipeline
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 
+import torchvision
+
 # Solve potential NCCL issues
 # dist.init_process_group(backend='nccl', init_method='env://', timeout=timedelta(seconds=5400))
 
 @dataclass
 class Hyperparameters:
     IN_CHANNEL: int = 1
-    VOCAB_SIZES = [100,1000, 1000, 1000]
+    VOCAB_SIZES = [100,1000]
     PATCH_SIZE: int = 3
     STRIDE: int = 3
     IMAGE_SIZE: int = 81
@@ -66,7 +68,8 @@ def train_one_epoch(
         loss = 0
         for i in range(len(info_list)):
             loss += F.mse_loss(reconstructed[i], info_list[i]["featmap_bchw"])
-
+        image = pipeline._visualize_composition_matrix(info_list[-1]['composition_matrix'], len(Hyperparameters.VOCAB_SIZES))
+        torchvision.utils.save_image(image[0, 0, :, :], f"composition_matrix_{epoch}_{step}.png")
         accelerator.backward(loss)
         optimizer.step()
         lr_scheduler.step()
