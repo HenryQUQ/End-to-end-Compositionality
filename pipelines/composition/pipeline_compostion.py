@@ -18,6 +18,30 @@ def extract_patches(featmap_bchw, patch_size=3, stride=3):
     patches = unfolded.transpose(1, 2).reshape(B, N, C, patch_size, patch_size)
     return patches
 
+def fold_patches(patches, out_h, out_w, patch_size=3, stride=3):
+    """
+    Restore patches (B, N, C, patch_size, patch_size) to (B, C, out_h, out_w)
+    """
+    B, N, C, H, W = patches.shape
+    # (B, N, C*H*W) => (B, C*H*W, N)
+    patches_reshape = patches.reshape(B, N, C * H * W).transpose(1, 2)
+    # Use Fold
+    folded = F.fold(
+        patches_reshape,
+        output_size=(out_h, out_w),
+        kernel_size=patch_size,
+        stride=stride,
+    )
+    return folded  # (B, C, out_h, out_w)
+
+if __name__ == "__main__":
+    a = torch.rand(1, 10, 81, 81)
+    patches = extract_patches(a, patch_size=3, stride=3)
+    print(patches.shape)
+    folded = fold_patches(patches, out_h=81, out_w=81)
+    print(folded.shape)
+    print((a == folded).all())
+
 
 class CompositionalPipeline(nn.Module):
     """
@@ -50,6 +74,7 @@ class CompositionalPipeline(nn.Module):
 
     def forward(self, images):
         final_feat, info_list = self.compose(images)
+        self._visualize_composition_matrix(info_list, layer_number=1)
         reconstructed = self.reconstruct(info_list)
         return final_feat, info_list, reconstructed
 
@@ -202,6 +227,38 @@ class CompositionalPipeline(nn.Module):
             voc_list.append(final_image)
 
         return voc_list
+
+    def _visualize_composition_matrix(self, composition_matrix, layer_number:int):
+
+        cm_current = composition_matrix[-1]["composition_matrix"]
+        # cm_current = composition_matrix
+        for current_layer_number in range(layer_number, -1, -1):
+            current_layer = self.layers[current_layer_number]
+            current_vocabulary = current_layer.vocabulary
+            cm_next = self._combine_cmatrix(
+                cm_current, current_vocabulary
+            )
+
+            B, N_i, C, H, W = cm_next.shape
+
+            cm_next = fold_patches(cm_next, out_h=int((N_i*H*W)**0.5), out_w=int((N_i*H*W)**0.5))
+
+            if current_layer_number == 0:
+                cm_current = cm_next
+                break
+            cm_next = cm_next.permute(0, 2, 3, 1).contiguous()
+
+            B, H, W, C = cm_next.shape
+
+            cm_next = cm_next.view(B, H*W, C).transpose(1, 2)
+
+            cm_current = cm_next
+        return cm_current
+
+
+
+
+
 
 
 

@@ -27,12 +27,12 @@ from dataclasses import dataclass, asdict
 @dataclass
 class Hyperparameters:
     IN_CHANNEL: int = 1
-    VOCAB_SIZES = [100,1000, 1000, 1000]
+    VOCAB_SIZES = [100,1000]
     PATCH_SIZE: int = 3
     STRIDE: int = 3
     IMAGE_SIZE: int = 81
 
-    BATCH_SIZE: int = 8
+    BATCH_SIZE: int = 1
     INITIAL_LR: float = 1e-4
     LEARNING_RATE_DECAY: float = 0.9
     LR_DECAY_STEP: int = 1000
@@ -61,6 +61,7 @@ def train_one_epoch(
         disable=not accelerator.is_main_process,
     )
     for step, (images, _) in tqdm_loader:
+        images = torch.linspace(0.0000, 0.6560, steps=81 * 81).reshape(1,1,81, 81).to(accelerator.device)
         final_feat, info_list, reconstructed = pipeline(images)
 
         loss = 0
