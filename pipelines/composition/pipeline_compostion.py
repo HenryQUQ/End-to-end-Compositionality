@@ -250,7 +250,7 @@ class CompositionalPipeline(nn.Module):
 
             B, H, W, C = cm_next.shape
 
-            cm_next = cm_next.view(B, H*W, C).transpose(1, 2)
+            cm_next = cm_next.view(B, H*W, C)
 
             cm_current = cm_next
         return cm_current
