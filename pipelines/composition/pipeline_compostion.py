@@ -129,7 +129,6 @@ class CompositionalPipeline(nn.Module):
         """
         Based on info_list, reverse the forward process, from top to the bottom, return (B, in_channels, image_size, image_size) image reconstruction
         """
-        # TODO： limit the channel channel sum to 1 and 0-1
         # From top to the bottom
         # info_list[-1] is the top layer
         reconstructed_info = [None for _ in range(len(self.layers))]

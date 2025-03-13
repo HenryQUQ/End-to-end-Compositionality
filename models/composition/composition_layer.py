@@ -45,15 +45,14 @@ class CompositionalLayer(nn.Module):
         """
         B, N, C, H, W = x.shape  # C=in_channels, H=patch_size, W=patch_size
 
-        # Conv x flatten into (B, N, 1, C*H*W)
-        x_flat = x.view(B, N, 1, C * H * W)
+
+        x = x.unsqueeze(2)
 
         # Convert vocabulary flatten into (vocab_size, C*H*W)
-        vocab_flat = self.vocabulary.view(self.vocab_size, -1).unsqueeze(0).unsqueeze(0)
+        vocab = self.vocabulary.unsqueeze(0).unsqueeze(0)
 
-        # TODO: Remove flatting machanism
         # MSE
-        mse = torch.mean((x_flat - vocab_flat) ** 2, dim=-1)  # (B, N, vocab_size)
+        mse = torch.mean((x - vocab) ** 2, dim=(-1, -2, -3))  # (B, N, vocab_size)
 
         mse_normalise = torch.tanh(mse) / torch.tanh(torch.tensor(10))
 
