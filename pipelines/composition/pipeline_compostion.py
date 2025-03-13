@@ -228,6 +228,7 @@ class CompositionalPipeline(nn.Module):
             for current_layer_number in range(layer_number-1, -1, -1):
                 current_layer = self.layers[current_layer_number]
                 current_vocabulary = current_layer.vocabulary
+                current_vocabulary = torch.clip(current_vocabulary, 0, 1)
                 cm_next = self._combine_cmatrix(
                     cm_current, current_vocabulary
                 )

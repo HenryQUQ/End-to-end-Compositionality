@@ -25,6 +25,8 @@ class MINSTDataset(torch.utils.data.Dataset):
         return len(self.dataset)
 
     def __getitem__(self, index):
+
+        index = 0 # Just for testing TODO: Remove this line
         image, label = self.dataset[index]
         image = self.transform(image)
         return image, label

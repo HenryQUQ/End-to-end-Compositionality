@@ -63,13 +63,16 @@ def train_one_epoch(
         disable=not accelerator.is_main_process,
     )
     for step, (images, _) in tqdm_loader:
+
         final_feat, info_list, reconstructed = pipeline(images)
 
         loss = 0
         for i in range(len(info_list)):
             loss += F.mse_loss(reconstructed[i], info_list[i]["featmap_bchw"])
-        image = pipeline._visualize_composition_matrix(info_list[-1]['composition_matrix'], len(Hyperparameters.VOCAB_SIZES))
-        torchvision.utils.save_image(image[0, 0, :, :], f"composition_matrix_{epoch}_{step}.png")
+        if accelerator.is_main_process and step % 100 == 0:
+            torchvision.utils.save_image(images[0, 0, :, :], f"input.png")
+            image = pipeline._visualize_composition_matrix(info_list[-1]['composition_matrix'], len(Hyperparameters.VOCAB_SIZES))
+            torchvision.utils.save_image(image[0, 0, :, :], f"composition_matrix_{epoch}_{step}.png")
         accelerator.backward(loss)
         optimizer.step()
         lr_scheduler.step()
@@ -178,7 +181,7 @@ def main():
         )
 
 
-        visualize_reconstruction(pipeline, dataloader, accelerator, epoch + 1)
+        # visualize_reconstruction(pipeline, dataloader, accelerator, epoch + 1)
 
         if (epoch + 1) % Hyperparameters.CHECKPOINT_FREQ == 0:
             accelerator.wait_for_everyone()

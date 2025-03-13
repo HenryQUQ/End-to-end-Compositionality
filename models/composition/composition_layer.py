@@ -31,6 +31,7 @@ class CompositionalLayer(nn.Module):
 
         else:
             vocab = torch.randn(vocab_size, in_channels, patch_size, patch_size)
+            vocab = torch.abs(vocab)
             vocab = vocab / vocab.sum(dim=1, keepdim=True)
             self.vocabulary = nn.Parameter(vocab)
 
