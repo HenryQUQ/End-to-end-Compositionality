@@ -48,7 +48,6 @@ class CompositionalLayer(nn.Module):
 
         x = x.unsqueeze(2)
 
-        # Convert vocabulary flatten into (vocab_size, C*H*W)
         vocab = self.vocabulary.unsqueeze(0).unsqueeze(0)
 
         # MSE
@@ -56,6 +55,7 @@ class CompositionalLayer(nn.Module):
 
         mse_normalise = torch.tanh(mse) / torch.tanh(torch.tensor(10))
 
+        mse_normalise = mse_normalise.clip(0, 1)
         composition_matrix = (1 - mse_normalise) ** 5
 
         composition_matrix = composition_matrix / composition_matrix.sum(dim=-1, keepdim=True)

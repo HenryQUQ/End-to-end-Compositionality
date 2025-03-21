@@ -29,7 +29,7 @@ import torchvision
 @dataclass
 class Hyperparameters:
     IN_CHANNEL: int = 1
-    VOCAB_SIZES = [100,1000]
+    VOCAB_SIZES = [100, 1000]
     PATCH_SIZE: int = 3
     STRIDE: int = 3
     IMAGE_SIZE: int = 81
@@ -65,6 +65,8 @@ def train_one_epoch(
     for step, (images, _) in tqdm_loader:
 
         final_feat, info_list, reconstructed = pipeline(images)
+        max_value = info_list[0]['composition_matrix'].max()
+        min_value = info_list[0]['composition_matrix'].min()
 
         loss = 0
         for i in range(len(info_list)):
@@ -149,6 +151,12 @@ def main():
         stride=Hyperparameters.STRIDE,
         image_size=Hyperparameters.IMAGE_SIZE,
     )
+
+    # if True:
+    #     pretained_path = r'/home/vieunite/Researchs/End-to-end-Compositionality/logs/train/Composition-E2E-2025-03-13_13-35-14/pipeline_final.pth'
+    #     checkpoint = torch.load(pretained_path)
+    #     pipeline.load_state_dict(checkpoint)
+
 
     optimizer = optim.Adam(pipeline.parameters(), lr=Hyperparameters.INITIAL_LR)
 
